@@ -1,7 +1,6 @@
-#[cfg(test)]
-mod tests {
-    #[test]
-    fn it_works() {
-        assert_eq!(2 + 2, 4);
-    }
-}
+pub type Result<T> = anyhow::Result<T>;
+
+pub mod logger;
+pub mod lsp;
+pub mod project_root;
+pub mod server_capabilities;

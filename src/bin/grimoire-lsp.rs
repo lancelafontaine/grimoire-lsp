@@ -1,3 +1,3 @@
-fn main() {
-    println!("Hello World!");
+fn main() -> grimoire_lsp::Result<()> {
+    grimoire_lsp::lsp::run()
 }
