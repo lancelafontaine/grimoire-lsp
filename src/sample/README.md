@@ -1,3 +1,3 @@
 # README
 
-foo
+[[My Favorite Recipes]]

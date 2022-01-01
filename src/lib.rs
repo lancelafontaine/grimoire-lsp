@@ -6,3 +6,4 @@ pub mod logger;
 pub mod lsp;
 pub mod project_root;
 pub mod server_capabilities;
+pub mod reference;

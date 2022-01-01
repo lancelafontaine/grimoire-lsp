@@ -1,5 +1,5 @@
 use lsp_server::{Connection, Message, Request, RequestId, Response};
-use lsp_types::{request::GotoDefinition, GotoDefinitionResponse, Location, Range};
+use lsp_types::{request::GotoDefinition, GotoDefinitionResponse};
 
 use log::info;
 
@@ -41,27 +41,15 @@ pub fn main_loop(connection: Connection) -> crate::Result<()> {
                     Ok((id, params)) => {
                         info!("got gotoDefinition request #{}: {:?}", id, params);
 
-                        let uri = params.text_document_position_params.text_document.uri;
-                        let mut position = params.text_document_position_params.position;
-
-                        position.line = 0;
-
-                        let location = Location {
-                            uri,
-                            range: Range {
-                                start: position,
-                                end: position,
-                            },
-                        };
-
-                        let result = Some(GotoDefinitionResponse::Scalar(location));
-                        let result = serde_json::to_value(&result).unwrap();
-                        let resp = Response {
+                        let url = params.text_document_position_params.text_document.uri;
+                        let position = params.text_document_position_params.position;
+                        let response = crate::reference::find_markdown_reference(url, position).map(|l| GotoDefinitionResponse::Scalar(l));
+                        let lsp_response = Response {
                             id,
-                            result: Some(result),
+                            result: Some(serde_json::to_value(&response)?),
                             error: None,
                         };
-                        connection.sender.send(Message::Response(resp))?;
+                        connection.sender.send(Message::Response(lsp_response))?;
                         continue;
                     }
                     Err(req) => req,
