@@ -3,7 +3,11 @@ use lsp_types::{request::GotoDefinition, GotoDefinitionResponse, Location, Range
 
 use log::info;
 
-pub fn run() -> anyhow::Result<()> {
+#[derive(clap::Args, Debug)]
+#[clap(about, author, version)]
+pub struct Lsp {}
+
+pub fn run(_args: Lsp) -> crate::Result<()> {
     crate::logger::initialize_logger()?;
 
     info!("starting up lsp server");
@@ -20,7 +24,7 @@ pub fn run() -> anyhow::Result<()> {
     Ok(())
 }
 
-pub fn main_loop(connection: Connection) -> anyhow::Result<()> {
+pub fn main_loop(connection: Connection) -> crate::Result<()> {
     info!("starting main loop");
 
     for msg in &connection.receiver {
