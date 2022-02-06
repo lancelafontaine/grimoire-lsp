@@ -1,32 +1,50 @@
 use log4rs::append::file::FileAppender;
 use log4rs::encode::pattern::PatternEncoder;
-use log4rs::Handle;
 
 use log4rs::config::{Appender, Config, Root};
+
+use crate::ctx::ProjectRoot;
 
 use log::LevelFilter;
 use std::env;
 
 const DEFAULT_LOG_LEVEL: LevelFilter = LevelFilter::Warn;
 
-pub fn initialize_logger() -> crate::Result<Handle> {
-    let project_root = crate::project_root::ProjectRoot::current(())
-        .ok_or_else(crate::errors::project_uninitialized)?;
+pub trait Logger {
+    fn initialize(&self, project_root: &ProjectRoot) -> crate::Result<()>;
+}
 
-    let log = FileAppender::builder()
-        .encoder(Box::new(PatternEncoder::new("{d} - {m}{n}")))
-        .build(project_root.log_file_path())?;
+pub struct StandardLogger {}
 
-    let log_config = Config::builder()
-        .appender(Appender::builder().build("log", Box::new(log)))
-        .build(
-            Root::builder()
-                .appender("log")
-                .build(log_level(env_var_log_level())),
-        )?;
+impl StandardLogger {
+    pub fn new() -> Self {
+        Self {}
+    }
+}
 
-    let handle = log4rs::init_config(log_config).unwrap();
-    Ok(handle)
+impl Default for StandardLogger {
+    fn default() -> Self {
+        Self::new()
+    }
+}
+
+impl Logger for StandardLogger {
+    fn initialize(&self, project_root: &ProjectRoot) -> crate::Result<()> {
+        let log = FileAppender::builder()
+            .encoder(Box::new(PatternEncoder::new("{d} - {m}{n}")))
+            .build(project_root.log_file_path())?;
+
+        let log_config = Config::builder()
+            .appender(Appender::builder().build("log", Box::new(log)))
+            .build(
+                Root::builder()
+                    .appender("log")
+                    .build(log_level(env_var_log_level())),
+            )?;
+
+        log4rs::init_config(log_config).unwrap();
+        Ok(())
+    }
 }
 
 fn log_level(env_var_log_level: crate::Result<String>) -> LevelFilter {
@@ -49,6 +67,25 @@ fn env_var_log_level() -> crate::Result<String> {
 }
 
 #[cfg(test)]
+pub mod mocks {
+    use super::*;
+
+    pub struct MockLogger {}
+
+    impl MockLogger {
+        pub fn mock() -> Self {
+            Self {}
+        }
+    }
+
+    impl Logger for MockLogger {
+        fn initialize(&self, _project_root: &ProjectRoot) -> crate::Result<()> {
+            Ok(())
+        }
+    }
+}
+
+#[cfg(test)]
 mod tests {
     use super::*;
 
@@ -56,7 +93,7 @@ mod tests {
     fn test_log_level_default() {
         assert_eq!(
             LevelFilter::Warn,
-            log_level(Err(crate::errors::test::error()))
+            log_level(Err(crate::errors::mocks::mock_error()))
         );
     }
 

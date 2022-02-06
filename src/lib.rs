@@ -1,8 +1,10 @@
 pub type Result<T> = anyhow::Result<T>;
 
+pub mod ctx;
 pub mod errors;
-pub mod init;
-pub mod logger;
 pub mod lsp;
-pub mod project_root;
-pub mod server_capabilities;
+pub mod models;
+pub mod parsers;
+pub mod repositories;
+pub mod services;
+pub mod subcommands;
