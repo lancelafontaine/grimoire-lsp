@@ -16,6 +16,18 @@ pub fn project_already_initialized() -> Error {
     anyhow!(msg)
 }
 
+pub fn invalid_path_from_url(url: lsp_types::Url) -> Error {
+    let msg = format!("Invalid path extracted from url {url:?}");
+    log::error!("{}", msg);
+    anyhow!(msg)
+}
+
+pub fn invalid_overlapping_references_in_file(file: &File) -> Error {
+    let msg = format!("Invalid overlapping references in file: {file:?}");
+    log::error!("{}", msg);
+    anyhow!(msg)
+}
+
 pub fn markdown_header_not_found_during_parsing(path: &Path) -> Error {
     let msg = format!("A header for file {path:?} could not be found.");
     log::warn!("{}", msg);
@@ -91,6 +103,24 @@ mod tests {
         assert_eq!(
             file_with_duplicate_header_created(&old_file, &new_file).to_string(),
             format!("A file {:?} was attempted to be saved with header {:?}, but another file with the same header already existed at {:?}", new_file.serializable_path().unwrap(), new_file.header(), old_file.serializable_path().unwrap())
+        );
+    }
+
+    #[test]
+    fn test_invalid_path_from_url() {
+        let url = lsp_types::Url::parse("file:/testing").unwrap();
+        assert_eq!(
+            invalid_path_from_url(url.clone()).to_string(),
+            format!("Invalid path extracted from url {:?}", url)
+        );
+    }
+
+    #[test]
+    fn test_invalid_overlapping_references_in_file() {
+        let file = File::mock(None);
+        assert_eq!(
+            invalid_overlapping_references_in_file(&file).to_string(),
+            format!("Invalid overlapping references in file: {:?}", file)
         );
     }
 }

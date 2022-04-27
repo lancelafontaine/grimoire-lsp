@@ -1,7 +1,10 @@
 use lsp_server::{Connection, Message, Request, RequestId, Response};
 use lsp_types::{request::GotoDefinition, GotoDefinitionResponse};
 
+use crate::ctx::Context;
+
 use log::info;
+use std::cmp::Ordering;
 
 #[derive(clap::Args, Debug)]
 #[clap(about, author, version)]
@@ -21,13 +24,13 @@ impl Lsp {
         info!("server capabilities: {:?}", &server_capabilities);
 
         connection.initialize(server_capabilities)?;
-        Self::main_loop(connection)?;
+        Self::main_loop(&context, connection)?;
         io_threads.join()?;
 
         Ok(())
     }
 
-    fn main_loop(connection: Connection) -> crate::Result<()> {
+    fn main_loop(context: &Context, connection: Connection) -> crate::Result<()> {
         info!("starting main loop");
 
         for msg in &connection.receiver {
@@ -46,8 +49,20 @@ impl Lsp {
 
                             let url = params.text_document_position_params.text_document.uri;
                             let position = params.text_document_position_params.position;
-                            let response = crate::lsp::find_markdown_reference(url, position)
-                                .map(GotoDefinitionResponse::Scalar);
+                            let mut references =
+                                crate::lsp::find_markdown_references(context, url, position)?;
+
+                            let response: Option<GotoDefinitionResponse> =
+                                match references.len().cmp(&1) {
+                                    Ordering::Greater => {
+                                        Some(GotoDefinitionResponse::Array(references))
+                                    }
+                                    Ordering::Less => Some(GotoDefinitionResponse::Scalar(
+                                        references.pop().unwrap(),
+                                    )),
+                                    Ordering::Equal => None,
+                                };
+
                             let lsp_response = Response {
                                 id,
                                 result: Some(serde_json::to_value(&response)?),

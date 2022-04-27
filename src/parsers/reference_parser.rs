@@ -36,15 +36,25 @@ impl Default for ReferenceParser {
 impl Parser for ReferenceParser {
     fn next(&mut self, c: char) {
         self.location.next(c);
+        if c == '[' {
+            self.location.in_range();
+        }
+
         match self.prefix {
             None => match c {
                 '[' => self.prefix = Some(None),
-                _ => return,
+                _ => {
+                    self.location.resume();
+                    return;
+                }
             },
             Some(prefix) => match prefix {
                 None => match c {
                     '[' => self.prefix = Some(Some(())),
-                    _ => self.prefix = None,
+                    _ => {
+                        self.location.resume();
+                        self.prefix = None;
+                    }
                 },
                 Some(_) => match &mut self.reference {
                     None => match c {
@@ -61,11 +71,17 @@ impl Parser for ReferenceParser {
                             self.suffix = None;
                             self.reference = None;
                         }
-                        ']' => match self.suffix {
-                            None => self.suffix = Some(None),
-                            Some(_) => self.done = true,
-                        },
-                        c => payload.push(c),
+                        ']' => {
+                            payload.location.next(c);
+                            match self.suffix {
+                                None => self.suffix = Some(None),
+                                Some(_) => self.done = true,
+                            }
+                        }
+                        c => {
+                            payload.push(c);
+                            payload.location.next(c);
+                        }
                     },
                 },
             },
@@ -74,6 +90,7 @@ impl Parser for ReferenceParser {
             self.prefix = None;
             self.suffix = None;
             self.references.push(self.reference.take().unwrap());
+            self.location.resume();
             self.done = false
         }
     }
@@ -115,21 +132,44 @@ mod tests {
     #[test]
     fn test_reference_parser_location_char_position_no_newline() {
         let mut parser = ReferenceParser::new();
-        assert_eq!(parser.location.line_position, 1);
-        assert_eq!(parser.location.char_position, 1);
         parser.next('a');
-        assert_eq!(parser.location.line_position, 1);
-        assert_eq!(parser.location.char_position, 2);
+        assert_eq!(parser.location.line_position, 0);
+        assert_eq!(parser.location.start_char_position, 0);
+        assert_eq!(parser.location.end_char_position, 0);
     }
 
     #[test]
     fn test_reference_parser_location_char_position_newline() {
         let mut parser = ReferenceParser::new();
-        assert_eq!(parser.location.line_position, 1);
-        assert_eq!(parser.location.char_position, 1);
         parser.next('\n');
-        assert_eq!(parser.location.line_position, 2);
-        assert_eq!(parser.location.char_position, 1);
+        assert_eq!(parser.location.line_position, 1);
+        assert_eq!(parser.location.start_char_position, -1);
+        assert_eq!(parser.location.end_char_position, -1);
+        parser.next('a');
+        assert_eq!(parser.location.line_position, 1);
+        assert_eq!(parser.location.start_char_position, 0);
+        assert_eq!(parser.location.end_char_position, 0);
+    }
+
+    #[test]
+    fn test_reference_parser_location_in_range() {
+        let mut parser = ReferenceParser::new();
+        parser.next('[');
+        parser.next('[');
+        parser.next('a');
+        parser.next(']');
+        assert!(parser.location.in_range);
+    }
+
+    #[test]
+    fn test_reference_parser_location_out_of_range() {
+        let mut parser = ReferenceParser::new();
+        parser.next('[');
+        parser.next('[');
+        parser.next('a');
+        parser.next(']');
+        parser.next(']');
+        assert!(!parser.location.in_range);
     }
 
     #[test]

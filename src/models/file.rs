@@ -212,11 +212,20 @@ mod tests {
         let (_tmp_dir, path) = File::mock_disk_file(Some(data));
         let file = File::parse_from_path(path).unwrap();
         let location = Location {
-            line_position: 2,
-            char_position: 16,
+            in_range: false,
+            line_position: 1,
+            start_char_position: 12,
+            end_char_position: 25,
         };
         assert_eq!(file.header_location().line_position, location.line_position);
-        assert_eq!(file.header_location().char_position, location.char_position);
+        assert_eq!(
+            file.header_location().start_char_position,
+            location.start_char_position
+        );
+        assert_eq!(
+            file.header_location().end_char_position,
+            location.end_char_position
+        );
     }
 
     #[test]
@@ -231,8 +240,10 @@ mod tests {
         let (_tmp_dir, path) = File::mock_disk_file(Some(data));
         let file = File::parse_from_path(path.clone()).unwrap();
         let location = Location {
-            line_position: 4,
-            char_position: 16,
+            in_range: true,
+            line_position: 3,
+            start_char_position: 12,
+            end_char_position: 25,
         };
         let reference = Reference::new(path, String::from("Reference1"), location);
         assert_eq!(file.references().len(), 1);
@@ -257,8 +268,10 @@ mod tests {
         let (_tmp_dir, path) = File::mock_disk_file(Some(data));
         let mut file = File::parse_from_path(path.clone()).unwrap();
         let location = Location {
-            line_position: 4,
-            char_position: 16,
+            in_range: true,
+            line_position: 3,
+            start_char_position: 12,
+            end_char_position: 25,
         };
         let reference = Reference::new(path, String::from("Reference1"), location);
         assert_eq!(file.references_mut().len(), 1);
