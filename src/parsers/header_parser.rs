@@ -41,13 +41,17 @@ impl Parser for HeaderParser {
         match self.prefix {
             None => {
                 if c == '#' {
+                    self.location.in_range();
                     self.prefix = Some(None);
                 }
             }
             Some(prefix) => match prefix {
                 None => match c {
                     ' ' => self.prefix = Some(Some(())),
-                    _ => self.prefix = None,
+                    _ => {
+                        self.location.resume();
+                        self.prefix = None
+                    }
                 },
                 Some(_) => match &mut self.payload {
                     None => match c {
@@ -58,7 +62,9 @@ impl Parser for HeaderParser {
                         }
                     },
                     Some(payload) => match c {
-                        '\n' => self.done = true,
+                        '\n' => {
+                            self.done = true;
+                        }
                         c => payload.push(c),
                     },
                 },
@@ -83,6 +89,7 @@ impl HeaderParserPayload {
 
     fn push(&mut self, c: char) {
         self.header.push(c);
+        self.location.next(c);
     }
 
     fn trim(self) -> Self {
@@ -110,21 +117,41 @@ mod tests {
     #[test]
     fn test_header_parser_location_char_position_no_newline() {
         let mut parser = HeaderParser::new();
-        assert_eq!(parser.location.line_position, 1);
-        assert_eq!(parser.location.char_position, 1);
         parser.next('a');
-        assert_eq!(parser.location.line_position, 1);
-        assert_eq!(parser.location.char_position, 2);
+        assert_eq!(parser.location.line_position, 0);
+        assert_eq!(parser.location.start_char_position, 0);
+        assert_eq!(parser.location.end_char_position, 0);
     }
 
     #[test]
     fn test_header_parser_location_char_position_newline() {
         let mut parser = HeaderParser::new();
-        assert_eq!(parser.location.line_position, 1);
-        assert_eq!(parser.location.char_position, 1);
         parser.next('\n');
-        assert_eq!(parser.location.line_position, 2);
-        assert_eq!(parser.location.char_position, 1);
+        assert_eq!(parser.location.line_position, 1);
+        assert_eq!(parser.location.start_char_position, -1);
+        assert_eq!(parser.location.end_char_position, -1);
+        parser.next('a');
+        assert_eq!(parser.location.line_position, 1);
+        assert_eq!(parser.location.start_char_position, 0);
+        assert_eq!(parser.location.end_char_position, 0);
+    }
+
+    #[test]
+    fn test_header_parser_location_in_range() {
+        let mut parser = HeaderParser::new();
+        parser.next('#');
+        parser.next(' ');
+        parser.next('A');
+        assert!(parser.location.in_range);
+    }
+    #[test]
+    fn test_header_parser_location_out_of_range() {
+        let mut parser = HeaderParser::new();
+        parser.next('#');
+        parser.next(' ');
+        parser.next('A');
+        parser.next('\n');
+        assert!(!parser.location.in_range);
     }
 
     #[test]

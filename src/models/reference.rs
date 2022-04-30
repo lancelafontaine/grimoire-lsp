@@ -105,8 +105,12 @@ mod tests {
             Location::default().line_position
         );
         assert_eq!(
-            reference.location().char_position,
-            Location::default().char_position
+            reference.location().start_char_position,
+            Location::default().start_char_position
+        );
+        assert_eq!(
+            reference.location().end_char_position,
+            Location::default().end_char_position
         );
     }
 
