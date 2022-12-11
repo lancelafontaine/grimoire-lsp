@@ -12,7 +12,7 @@ license = "MIT OR Apache-2.0"
 anyhow = "1.0.52"
 clap = { version = "3.0.0", features = ["derive"] }
 log = "0.4.17"
-log4rs = "1.0.0"
+log4rs = "1.2.0"
 lsp-server = "0.5.2"
 lsp-types = "0.91.1"
 serde = "1.0.132"
