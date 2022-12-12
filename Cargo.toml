@@ -10,7 +10,7 @@ license = "MIT OR Apache-2.0"
 
 [dependencies]
 anyhow = "1.0.66"
-clap = { version = "4.0.26", features = ["derive"] }
+clap = { version = "4.0.29", features = ["derive"] }
 log = "0.4.17"
 log4rs = "1.2.0"
 lsp-server = "0.5.2"
